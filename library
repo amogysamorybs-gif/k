@@ -16,6 +16,16 @@ end
 local setclipboard = setclipboard or nil
 local protectgui = protectgui or (syn and syn.protect_gui) or function() end
 local gethui = gethui or function()
+    local ok, pg = pcall(function()
+        local pl = Players.LocalPlayer
+        if pl then
+            return pl:FindFirstChild("PlayerGui") or pl:WaitForChild("PlayerGui", 1)
+        end
+        return nil
+    end)
+    if ok and pg then
+        return pg
+    end
     return CoreGui
 end
 
@@ -1057,11 +1067,12 @@ end
 
 local function ParentUI(UI: Instance, SkipHiddenUI: boolean?)
     if SkipHiddenUI then
-        SafeParentUI(UI, CoreGui)
-        return
+        local ok = pcall(function() SafeParentUI(UI, CoreGui) end)
+        if ok and UI.Parent then return end
     end
 
     pcall(protectgui, UI)
+
     SafeParentUI(UI, gethui)
 end
 
@@ -1083,6 +1094,21 @@ local ModalScreenGui = New("ScreenGui", {
     ResetOnSpawn = false,
 })
 ParentUI(ModalScreenGui, true)
+
+task.delay(0.1, function()
+    pcall(function()
+        local pl = Players.LocalPlayer
+        if not pl then return end
+        local playerGui = pl:FindFirstChild("PlayerGui") or pl:WaitForChild("PlayerGui", 2)
+        if not playerGui then return end
+        local core = game:GetService("CoreGui")
+        for _, g in ipairs(core:GetChildren()) do
+            if g.Name == "Obsidian" or g.Name == "ObsidanModal" or g.Name:lower():find("obsidian") then
+                g.Parent = playerGui
+            end
+        end
+    end)
+end)
 
 local ModalElement = New("TextButton", {
     BackgroundTransparency = 1,
